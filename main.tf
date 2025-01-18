@@ -1,5 +1,5 @@
 # Create a DynamoDB table to store the scheduled tasks with attributes for task ID and scheduled time , Set up a TTL for the scheduled_time attribute, 
-//and enable streams on the table.
+# and enable streams on the table.
 
 resource "aws_dynamodb_table" "cron_job" {
   name         = "scheduled_tasks"
@@ -25,7 +25,7 @@ resource "aws_dynamodb_table" "cron_job" {
     enabled        = true
   }
 
-   global_secondary_index {
+  global_secondary_index {
     name            = "scheduled_time_index"
     hash_key        = "scheduled_time"
     projection_type = "ALL"
@@ -49,10 +49,8 @@ resource "aws_iam_role" "lambda_role" {
   })
 }
 
-// Create a policy that allows the Lambda function to interact with DynamoDB and CloudWatch Logs.
-resource "aws_iam_policy" "lambda_policy" {
-  name        = "lambda_dynamodb_policy"
-  description = "Policy for Lambda to interact with DynamoDB and CloudWatch Logs"
+resource "aws_iam_policy" "dynamodb_stream_policy" {
+  name = "dynamodb_stream_policy"
 
   policy = jsonencode({
     Version = "2012-10-17",
@@ -60,6 +58,10 @@ resource "aws_iam_policy" "lambda_policy" {
       {
         Effect = "Allow",
         Action = [
+          "dynamodb:DescribeStream",
+          "dynamodb:GetRecords",
+          "dynamodb:GetShardIterator",
+          "dynamodb:ListStreams",
           "dynamodb:Query",
           "dynamodb:GetItem",
           "dynamodb:UpdateItem",
@@ -84,9 +86,8 @@ resource "aws_iam_policy" "lambda_policy" {
   })
 }
 
-// Attach the policy to the role.
 resource "aws_iam_role_policy_attachment" "lambda_policy_attachment" {
-  policy_arn = aws_iam_policy.lambda_policy.arn
+  policy_arn = aws_iam_policy.dynamodb_stream_policy.arn
   role       = aws_iam_role.lambda_role.name
 }
 
